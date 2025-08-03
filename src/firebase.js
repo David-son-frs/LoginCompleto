@@ -1,0 +1,18 @@
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCRVggFCSK7J2DZiPsYzwG0quQtaf7y8xY",
+  authDomain: "artemiscore-8056a.firebaseapp.com",
+  projectId: "artemiscore-8056a",
+  storageBucket: "artemiscore-8056a.appspot.com",
+  messagingSenderId: "223316540141",
+  appId: "1:223316540141:web:e05c554436880038fb6ae4",
+  measurementId: "G-7JKW538RPS"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+export { auth, provider };
