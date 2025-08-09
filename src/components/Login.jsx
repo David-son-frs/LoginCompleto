@@ -7,7 +7,7 @@ import {
   fetchSignInMethodsForEmail,
 } from "firebase/auth";
 import { auth, provider } from "../components/firebase";
-import { AuthContext } from "../components/AuthContext"; 
+import { AuthContext } from "../components/AuthContext";
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -17,7 +17,7 @@ const Login = () => {
   const [emailError, setEmailError] = useState("");
   const [loginError, setLoginError] = useState("");
   const navigate = useNavigate();
-  const emailInputRef = useRef(); // Ref para acesso direto ao valor do email
+  const emailInputRef = useRef();
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
@@ -48,7 +48,6 @@ const Login = () => {
     } catch (error) {
       console.error("Erro no login:", error);
       if (error.code === "auth/user-not-found") {
-        // Em vez de mostrar mensagem, redireciona para recuperar senha com email no state
         navigate("/RecuperarSenha", { state: { email } });
       } else if (error.code === "auth/wrong-password") {
         setLoginError("Senha incorreta.");
@@ -79,24 +78,18 @@ const Login = () => {
   };
 
   const handlePasswordReset = async () => {
-    // Usa o valor atual do input diretamente
-    const emailValue = emailInputRef.current?.value?.trim(); 
-    
+    const emailValue = emailInputRef.current?.value?.trim();
+
     if (!emailValue) {
       setEmailError("Por favor, digite seu email primeiro");
       return;
     }
 
     try {
-      // tentamos verificar métodos (mantendo a chamada original),
-      // mas independente do resultado vamos redirecionar para a página de reset.
       await fetchSignInMethodsForEmail(auth, emailValue);
     } catch (error) {
-      // só logamos o erro para debug — NÃO mostramos a mensagem "não cadastrado"
       console.error("Erro ao verificar email:", error);
     } finally {
-      // Limpa qualquer erro exibido e redireciona sempre para a tela de recuperação,
-      // enviando o email no state (mantendo seu fluxo original).
       setEmailError("");
       navigate("/RecuperarSenha", { state: { email: emailValue } });
     }
@@ -105,6 +98,26 @@ const Login = () => {
   return (
     <section className="login-section">
       <div className="login-container">
+        {/* Botão Voltar no canto superior */}
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="back-button"
+          style={{
+            background: "none",
+            border: "none",
+            color: "#5733ef",
+            cursor: "pointer",
+            fontWeight: "bold",
+            marginBottom: "10px",
+            fontSize: "1rem",
+          }}
+          aria-label="Voltar"
+          title="Voltar"
+        >
+          ← Voltar
+        </button>
+
         <div className="title-container">
           <h2>Bem-vindo de volta ao ArtemiScore!</h2>
           <p>Entre na sua conta para continuar sua jornada</p>
@@ -116,7 +129,7 @@ const Login = () => {
               E-mail
             </label>
             <input
-              ref={emailInputRef} // Ref atribuída aqui
+              ref={emailInputRef}
               type="email"
               id="email"
               name="email"
@@ -134,10 +147,16 @@ const Login = () => {
               spellCheck="false"
             />
             {emailError && (
-              <p className="error-message" style={{ color: "red", marginTop: "5px" }}>
+              <p
+                className="error-message"
+                style={{ color: "red", marginTop: "5px" }}
+              >
                 {emailError}
                 {emailError.includes("não está cadastrado") && (
-                  <Link to="/cadastro" style={{ color: "blue", marginLeft: "5px" }}>
+                  <Link
+                    to="/cadastro"
+                    style={{ color: "blue", marginLeft: "5px" }}
+                  >
                     Cadastre-se
                   </Link>
                 )}
@@ -176,10 +195,16 @@ const Login = () => {
           </div>
 
           {loginError && (
-            <p className="error-message" style={{ color: "red", marginTop: "5px" }}>
+            <p
+              className="error-message"
+              style={{ color: "red", marginTop: "5px" }}
+            >
               {loginError}
               {loginError.includes("não está cadastrado") && (
-                <Link to="/cadastro" style={{ color: "blue", marginLeft: "5px" }}>
+                <Link
+                  to="/cadastro"
+                  style={{ color: "blue", marginLeft: "5px" }}
+                >
                   Cadastre-se
                 </Link>
               )}
@@ -192,15 +217,25 @@ const Login = () => {
               <label htmlFor="remember">Lembrar-me</label>
             </div>
 
-            <p>
-              Esqueceu a senha?{" "}
-              <span
-                onClick={handlePasswordReset}
-                style={{ cursor: "pointer", color: "blue" }}
-              >
-                Redefinir agora
-              </span>
-            </p>
+            {/* Botão Redefinir agora estilizado como link */}
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              className="link-button"
+              style={{
+                background: "none",
+                border: "none",
+                color: "#5733ef",
+                cursor: "pointer",
+                textDecoration: "underline",
+                padding: 0,
+                fontSize: "1rem",
+              }}
+              aria-label="Redefinir senha"
+              title="Redefinir senha"
+            >
+              Redefinir agora
+            </button>
           </div>
 
           <button
