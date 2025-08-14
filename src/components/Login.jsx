@@ -37,11 +37,12 @@ const Login = () => {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
         setRemainingTime(`${minutes}m ${seconds}s`);
-        
+
         if (timeLeft <= 0) {
           setLockoutUntil(null);
           setLoginError("");
           setRemainingTime(null);
+          setLoginAttempts(0); // Reset attempts when lockout expires
           clearInterval(interval);
         }
       }, 1000);
@@ -64,26 +65,12 @@ const Login = () => {
       return;
     }
 
-    // Check if max attempts reached
-    if (loginAttempts >= 5) {
-      setLockoutUntil(new Date(Date.now() + 30 * 60 * 1000)); // Lockout for 30 minutes
-      setLoginError(`Muitas tentativas falhas. Tente novamente em ${remainingTime || "30m 0s"}.`);
-      setLoginAttempts(0); // Reset attempts after lockout
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Verificar se o e-mail foi confirmado
+      // Check if email is verified
       if (!user.emailVerified) {
-        // Se não foi verificado, enviar e-mail de verificação novamente
         await sendEmailVerification(user);
         setVerificationSent(true);
         setLoginError("Seu e-mail ainda não foi verificado. Enviamos um novo e-mail de verificação. Por favor, verifique sua caixa de entrada.");
@@ -100,38 +87,53 @@ const Login = () => {
       });
 
       setLoginAttempts(0); // Reset attempts on successful login
+      setLockoutUntil(null); // Clear any lockout
       navigate("/home");
     } catch (error) {
       console.error("Erro no login:", error);
       setIsLoading(false);
-      setLoginAttempts((prev) => prev + 1); // Increment attempts on failure
+      
+      // Only increment attempts for specific errors
+      if (["auth/invalid-credential", "auth/wrong-password", "auth/invalid-email", "auth/user-not-found"].includes(error.code)) {
+        setLoginAttempts((prev) => prev + 1);
+      }
+
+      // Check if max attempts reached
+      if (loginAttempts + 1 >= 5) {
+        const lockoutTime = new Date(Date.now() + 30 * 60 * 1000); // Lockout for 30 minutes
+        setLockoutUntil(lockoutTime);
+        setLoginError("Muitas tentativas falhas. Tente novamente em 30 minutos.");
+        setLoginAttempts(0); // Reset attempts after lockout
+        setIsLoading(false);
+        return;
+      }
 
       let errorMessage = "Erro ao fazer login. Tente novamente.";
-      
+
       switch (error.code) {
         case "auth/invalid-credential":
-          errorMessage = `Credenciais inválidas. Verifique seu email e senha. Tentativas restantes: ${5 - loginAttempts - 1}`;
+          errorMessage = `Credenciais inválidas. Verifique seu email e senha. Tentativas restantes: ${4 - loginAttempts}`;
           break;
         case "auth/invalid-email":
-          errorMessage = `Email inválido. Por favor, insira um email válido. Tentativas restantes: ${5 - loginAttempts - 1}`;
+          errorMessage = `Email inválido. Por favor, insira um email válido. Tentativas restantes: ${4 - loginAttempts}`;
           break;
         case "auth/user-disabled":
           errorMessage = "Esta conta foi desativada. Entre em contato com o suporte.";
           break;
         case "auth/user-not-found":
-          errorMessage = `Nenhuma conta encontrada com este email. Tentativas restantes: ${5 - loginAttempts - 1}`;
+          errorMessage = `Nenhuma conta encontrada com este email. Tentativas restantes: ${4 - loginAttempts}`;
           navigate("/RecuperarSenha", { state: { email } });
           break;
         case "auth/wrong-password":
-          errorMessage = `Senha incorreta. Tente novamente ou redefina sua senha. Tentativas restantes: ${5 - loginAttempts - 1}`;
+          errorMessage = `Senha incorreta. Tente novamente ou redefina sua senha. Tentativas restantes: ${4 - loginAttempts}`;
           break;
         case "auth/too-many-requests":
-          errorMessage = `Muitas tentativas falhas. Tente novamente em ${remainingTime || "30m 0s"}.`;
-          setLockoutUntil(new Date(Date.now() + 30 * 60 * 1000)); // Lockout for 30 minutes
-          setLoginAttempts(0); // Reset attempts
+          errorMessage = "Muitas tentativas falhas. Tente novamente em 30 minutos.";
+          setLockoutUntil(new Date(Date.now() + 30 * 60 * 1000));
+          setLoginAttempts(0);
           break;
         case "auth/network-request-failed":
-          errorMessage = `Problema de conexão. Verifique sua internet. Tentativas restantes: ${5 - loginAttempts - 1}`;
+          errorMessage = `Problema de conexão. Verifique sua internet. Tentativas restantes: ${4 - loginAttempts}`;
           break;
         default:
           errorMessage = error.message || "Erro desconhecido ao fazer login.";
@@ -272,11 +274,6 @@ const Login = () => {
           )}
 
           <div className="remember-forgot">
-            <div className="remember-me">
-              <input type="checkbox" id="remember" name="remember" />
-              <label htmlFor="remember">Lembrar-me</label>
-            </div>
-
             <button
               type="button"
               onClick={handlePasswordReset}
@@ -304,22 +301,6 @@ const Login = () => {
           >
             {isLoading ? "Carregando..." : "Entrar"}
           </button>
-
-          <div className="social-login">
-            <p>Ou entre com</p>
-            <button
-              type="button"
-              className="google-btn"
-              onClick={handleGoogleLogin}
-            >
-              <img
-                src="https://github.com/Thallys-San/ArtemiScore/blob/main/download.png?raw=true"
-                alt="Google logo"
-                className="google-logo"
-              />
-              Entrar com Google
-            </button>
-          </div>
 
           <div className="register-link">
             <p>
